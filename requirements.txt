@@ -4,3 +4,4 @@ openai
 httpx
 pydantic
 numpy
+python-multipart
