@@ -70,7 +70,7 @@ async def get_embedding(text: str) -> List[float]:
         raise HTTPException(status_code=500, detail=f"Embedding generation failed: {str(e)}")
 
 # --- Endpoints ---
-@app.get("/")
+@app.post("/")
 async def root():
     return {"status": "healthy", "service": "Semantic Re-ranker"}
 
