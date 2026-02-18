@@ -3,6 +3,7 @@ import math
 import asyncio
 from typing import List, Dict, Any
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware  # IMPORT THIS
 from pydantic import BaseModel
 from openai import AsyncOpenAI
 import uvicorn
@@ -19,6 +20,16 @@ client = AsyncOpenAI(
 )
 
 app = FastAPI(title="Semantic Re-ranker API")
+
+# --- CORS CONFIGURATION (THE FIX) ---
+# This tells the browser/tester: "It's okay to talk to this API from any URL"
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],     # Allows all origins (like the assignment tester's URL)
+    allow_credentials=True,
+    allow_methods=["*"],     # Allows all methods (POST, GET, OPTIONS, etc.)
+    allow_headers=["*"],     # Allows all headers
+)
 
 # --- Pydantic Models ---
 class Document(BaseModel):
@@ -49,7 +60,6 @@ async def get_embedding(text: str) -> List[float]:
     """Fetches embedding for a single string asynchronously."""
     try:
         # Using text-embedding-3-small as a standard, efficient model
-        # Adjust model name if your specific API pipe requires a different one
         response = await client.embeddings.create(
             input=text,
             model="text-embedding-3-small" 
@@ -73,7 +83,6 @@ async def rerank_documents(request: RerankRequest):
     query_embedding = await get_embedding(request.query)
 
     # 2. Get embeddings for all documents concurrently
-    # We use asyncio.gather to fire all API requests at once rather than sequentially
     doc_tasks = [get_embedding(doc.text) for doc in request.documents]
     doc_embeddings = await asyncio.gather(*doc_tasks)
 
@@ -98,7 +107,5 @@ async def rerank_documents(request: RerankRequest):
     )
 
 if __name__ == "__main__":
-    # This allows local debugging with `python main.py`
-    # On Railway, the Procfile will handle execution
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
